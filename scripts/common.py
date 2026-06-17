@@ -92,9 +92,32 @@ def iter_book_files():
             yield ilm_dir, f
 
 
+class _UniqueKeyLoader(yaml.SafeLoader):
+    """محمِّل YAML يرفض المفاتيح المكرَّرة بدل ابتلاعها صامتًا كما يفعل PyYAML."""
+
+
+def _construct_mapping(loader, node, deep=False):
+    mapping = {}
+    for key_node, value_node in node.value:
+        key = loader.construct_object(key_node, deep=deep)
+        if key in mapping:
+            raise yaml.constructor.ConstructorError(
+                None, None,
+                f"مفتاح مكرَّر «{key}»",
+                key_node.start_mark,
+            )
+        mapping[key] = loader.construct_object(value_node, deep=deep)
+    return mapping
+
+
+_UniqueKeyLoader.add_constructor(
+    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _construct_mapping
+)
+
+
 def load_book(path: Path):
     with open(path, encoding="utf-8") as fh:
-        return yaml.safe_load(fh)
+        return yaml.load(fh, Loader=_UniqueKeyLoader)
 
 
 def load_all_books():
