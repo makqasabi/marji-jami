@@ -116,6 +116,21 @@ def validate_book(path, data, errors, warnings, seen_ids):
     elif isinstance(tawafur, dict) and "المكتبة_الشاملة" not in tawafur:
         warn("التوافر_الرقمي بلا حقل «المكتبة_الشاملة»")
 
+    # روابط التحميل (حقل اختياري)
+    rd = data.get("روابط_التحميل")
+    if rd is not None:
+        if not isinstance(rd, list):
+            err("روابط_التحميل يجب أن تكون قائمة")
+        else:
+            for i, r in enumerate(rd, 1):
+                if not isinstance(r, dict):
+                    err(f"رابط التحميل {i} ليس قاموسًا")
+                    continue
+                if not r.get("الرابط"):
+                    err(f"رابط التحميل {i}: «الرابط» مفقود")
+                if str(r.get("النوع", "")).strip() not in ("حر", "شراء"):
+                    err(f"رابط التحميل {i}: «النوع» يجب أن يكون «حر» أو «شراء»")
+
     # القيم المعدودة
     mustawa = data.get("مستوى_القارئ")
     if mustawa:

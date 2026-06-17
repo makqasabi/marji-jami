@@ -90,6 +90,15 @@ def book_card(b):
     if v:
         lines.append(f"**الشروح والمختصرات والذيول:** {v}.")
         lines.append("")
+    rd = b.get("روابط_التحميل") or []
+    if rd:
+        items = []
+        for r in rd:
+            tag = "حر" if str(r.get("النوع", "")).strip() == "حر" else "شراء"
+            emoji = "📥" if tag == "حر" else "🛒"
+            items.append(f"{emoji} [{r.get('المصدر', 'رابط')}]({r.get('الرابط', '')}) ({tag})")
+        lines.append(f"**روابط التحميل:** {' · '.join(items)}")
+        lines.append("")
     if b.get("ملاحظات_نقدية"):
         lines.append(f"**ملاحظات نقدية:** {str(b['ملاحظات_نقدية']).strip()}")
         lines.append("")
@@ -175,7 +184,7 @@ def main():
     if kharita.exists():
         idx.append(kharita.read_text(encoding="utf-8").strip())
         idx.append("")
-    idx.append("فهارس مساعدة: [المؤلفون](فهرس-المؤلفين.md) · [القرون](فهرس-القرون.md) · [الإحصاءات](إحصاءات.md)")
+    idx.append("فهارس مساعدة: [المؤلفون](فهرس-المؤلفين.md) · [القرون](فهرس-القرون.md) · [الإحصاءات](إحصاءات.md) · [روابط التحميل](روابط-التحميل.md)")
     (DOCS / "index.md").write_text("\n".join(idx), encoding="utf-8")
 
     # فهرس المؤلفين
@@ -242,7 +251,42 @@ def main():
     st.append(f"<sub>وُلّد في {datetime.date.today()}</sub>")
     (DOCS / "إحصاءات.md").write_text("\n".join(st) + "\n", encoding="utf-8")
 
-    print(f"✓ وُلّدت {pages} صفحة علم + 4 فهارس ({len(all_books)} كتابًا)")
+    # فهرس روابط التحميل
+    dl = [TANBIH + "# روابط التحميل", ""]
+    dl.append("مصادر تحميل ملفات الكتب، مميَّزةً: 📥 **حر** (ملك عام أو متاح مجانًا من جهته) · "
+              "🛒 **شراء** (محمي بحقوق النشر، يُقتنى قانونيًّا). "
+              "تُحفظ الملفات المحمَّلة في مجلد `pdfs/<العلم>/` (مستثنى من git).")
+    dl.append("")
+    has_free = sum(1 for b in all_books
+                   if any(str(r.get("النوع", "")).strip() == "حر" for r in (b.get("روابط_التحميل") or [])))
+    has_buy = sum(1 for b in all_books
+                  if (b.get("روابط_التحميل") or []) and not any(
+                      str(r.get("النوع", "")).strip() == "حر" for r in b.get("روابط_التحميل")))
+    none_n = sum(1 for b in all_books if not (b.get("روابط_التحميل") or []))
+    dl.append(f"- كتب لها رابط حر: **{has_free}** · للشراء فقط: **{has_buy}** · "
+              f"لم تُوثَّق روابطها بعد: **{none_n}**")
+    dl.append("")
+    for ilm in ULUM:
+        if ilm not in by_ilm:
+            continue
+        dl.append(f"## [{ilm}]({ilm_dirname(ilm)}.md)")
+        dl.append("")
+        for b in by_ilm[ilm]:
+            rd = b.get("روابط_التحميل") or []
+            if rd:
+                items = []
+                for r in rd:
+                    tag = "حر" if str(r.get("النوع", "")).strip() == "حر" else "شراء"
+                    emoji = "📥" if tag == "حر" else "🛒"
+                    items.append(f"{emoji} [{r.get('المصدر', 'رابط')}]({r.get('الرابط', '')})")
+                dl.append(f"- **{b['العنوان']}** — {' · '.join(items)}")
+            else:
+                dl.append(f"- {b['العنوان']} — <sub>لم تُوثَّق بعد</sub>")
+        dl.append("")
+    dl.append(f"<sub>وُلّد في {datetime.date.today()}</sub>")
+    (DOCS / "روابط-التحميل.md").write_text("\n".join(dl) + "\n", encoding="utf-8")
+
+    print(f"✓ وُلّدت {pages} صفحة علم + 5 فهارس ({len(all_books)} كتابًا)")
 
 
 if __name__ == "__main__":
