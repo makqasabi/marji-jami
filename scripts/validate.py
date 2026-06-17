@@ -71,13 +71,19 @@ def validate_book(path, data, errors, warnings, seen_ids):
             err("المؤلف.الاسم مفقود")
         hay2a = muallif.get("هيئة") in ("نعم", True)
         muasir = muallif.get("معاصر") in ("نعم", True)
+        mutarjam = data.get("مترجَم") in ("نعم", True)
         wh = muallif.get("الوفاة_هجري")
         wm = muallif.get("الوفاة_ميلادي")
         if not (hay2a or muasir):
-            if not isinstance(wh, int):
-                err("المؤلف.الوفاة_هجري مفقود أو ليس رقمًا (للهيئات/الأحياء أضف هيئة: نعم أو معاصر: نعم)")
-            if not isinstance(wm, int):
-                err("المؤلف.الوفاة_ميلادي مفقود أو ليس رقمًا")
+            if mutarjam:
+                # المؤلف الأجنبي للكتاب المترجَم: يكفيه التاريخ الميلادي
+                if not isinstance(wm, int):
+                    err("المؤلف الأجنبي المترجَم: الوفاة_ميلادي مفقودة (أو أضف معاصر: نعم للأحياء)")
+            else:
+                if not isinstance(wh, int):
+                    err("المؤلف.الوفاة_هجري مفقود أو ليس رقمًا (للهيئات/الأحياء أضف هيئة: نعم أو معاصر: نعم)")
+                if not isinstance(wm, int):
+                    err("المؤلف.الوفاة_ميلادي مفقود أو ليس رقمًا")
         if isinstance(wh, int) and not (1 <= wh <= 1500):
             err(f"الوفاة_هجري {wh} خارج النطاق المعقول")
         if isinstance(wm, int) and not (570 <= wm <= 2100):

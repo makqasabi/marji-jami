@@ -29,6 +29,8 @@ def fmt_author(b):
         return s + ")"
     if m.get("هيئة") in ("نعم", True):
         return f"{name} (هيئة)"
+    if isinstance(wm, int):  # مؤلف أجنبي مترجَم بالتاريخ الميلادي وحده
+        return f"{name} (ت {wm}م)"
     return f"{name} (معاصر)"
 
 
