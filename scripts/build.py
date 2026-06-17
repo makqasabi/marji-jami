@@ -45,10 +45,22 @@ def book_card(b):
     lines.append(f"**المؤلف:** {fmt_author(b)}  ")
     if b.get("التصنيف_الفرعي"):
         lines.append(f"**التصنيف الفرعي:** {b['التصنيف_الفرعي']}  ")
+    naw = b.get("نوع_المرجعية", "؟")
+    if b.get("مترجَم") in ("نعم", True):
+        naw += " — مترجَم 📖"
     lines.append(f"**مستوى القارئ:** {b.get('مستوى_القارئ', '؟')} · "
-                 f"**نوع المرجعية:** {b.get('نوع_المرجعية', '؟')} · "
+                 f"**نوع المرجعية:** {naw} · "
                  f"**حالة التوثيق:** {b.get('حالة_التوثيق', '؟')}")
     lines.append("")
+    if b.get("مترجَم") in ("نعم", True):
+        tparts = []
+        if b.get("المترجِم"):
+            tparts.append(f"ترجمة: {b['المترجِم']}")
+        if b.get("جهة_الترجمة"):
+            tparts.append(str(b["جهة_الترجمة"]))
+        if tparts:
+            lines.append(f"**الترجمة:** {'، '.join(tparts)}.")
+            lines.append("")
     lines.append(f"**لماذا هو أمٌّ في بابه:** {str(b.get('لماذا_هو_أم_في_بابه', '')).strip()}")
     lines.append("")
     for key, label in [("يغني_عن", "يغني عن"), ("يُقرأ_قبله", "يُقرأ قبله")]:
