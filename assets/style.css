@@ -34,6 +34,23 @@ a{color:var(--teal);text-decoration:none}
   font-size:.8rem;opacity:.9
 }
 .stats b{color:#ffe9b0}
+.modes{max-width:var(--maxw);margin:10px auto 0;display:flex;gap:8px}
+.modes button{
+  flex:1;border:1px solid rgba(255,255,255,.35);background:transparent;color:#fdf7e8;
+  padding:8px 10px;border-radius:10px;font-family:inherit;font-size:.85rem;font-weight:600;cursor:pointer
+}
+.modes button.active{background:#fffdf8;color:var(--teal-d);border-color:#fffdf8}
+
+/* full-text results */
+.tcount{color:var(--muted);font-size:.85rem;margin:14px 2px 4px}
+.tres{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 16px;
+  margin:10px 0;box-shadow:var(--shadow);cursor:pointer}
+.tres .tsci{font-size:.7rem;color:var(--gold);font-weight:600}
+.tres h3{font-size:1.02rem;color:var(--ink);margin:2px 0 6px}
+.tres .snip{font-size:.9rem;color:#4a4438;line-height:1.9;margin:0}
+.tres .snip mark{background:#fff1bf;color:#5a4500;padding:0 2px;border-radius:3px}
+.tres .topen{display:inline-block;margin-top:8px;font-size:.78rem;color:var(--teal);font-weight:600}
+.muted2{display:inline-block;margin-top:8px;font-size:.78rem;color:var(--muted)}
 
 /* ---- pillars nav ---- */
 .pillars{

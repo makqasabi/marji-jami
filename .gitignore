@@ -3,5 +3,7 @@ __pycache__/
 .venv/
 docs_html/
 pdfs/**/*.pdf
-corpus/
-search-index/
+/corpus/
+/search-index/
+*.log
+/.claude/

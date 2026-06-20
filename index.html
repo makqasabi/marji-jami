@@ -21,6 +21,10 @@
            placeholder="ابحث عن كتاب أو مؤلف أو علم…" aria-label="بحث">
     <span class="searchicon" aria-hidden="true">🔍</span>
   </div>
+  <div class="modes" id="modes">
+    <button data-mode="index" class="active">الفهرس (العناوين)</button>
+    <button data-mode="text">داخل المتون 🔎</button>
+  </div>
   <div id="stats" class="stats"></div>
 </header>
 
@@ -41,6 +45,8 @@
 </footer>
 
 <script src="assets/data.js"></script>
+<script src="assets/corpus/manifest.js"></script>
+<script src="assets/sqljs/index.js"></script>
 <script src="assets/app.js"></script>
 </body>
 </html>

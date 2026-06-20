@@ -1,7 +1,7 @@
 (function () {
   "use strict";
   var D = window.MARJI || { pillars: [], sciences: [], books: [], stats: {} };
-  var state = { pillar: null, q: "" };
+  var state = { pillar: null, q: "", mode: "index" };
 
   var $ = function (s) { return document.querySelector(s); };
   function esc(s) {
@@ -11,9 +11,20 @@
   }
   function norm(s) {
     return String(s || "")
-      .replace(/[ؐ-ًؚ-ٰٟۖ-ۭـ]/g, "")
-      .replace(/[أإآ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه");
+      .replace(/[ؐ-ًؚ-ْٰۖ-ۭـ]/g, "")
+      .replace(/[أإآ]/g, "ا")
+      .replace(/ى/g, "ي")
+      .replace(/ة/g, "ه");
   }
+
+  // shamela-id -> book (لربط نتائج النص بالبطاقة والمصدر)
+  var byShamela = {};
+  D.books.forEach(function (b) {
+    (b.links || []).forEach(function (l) {
+      var m = /shamela\.ws\/book\/(\d+)/.exec(l.url || "");
+      if (m) byShamela[m[1]] = b;
+    });
+  });
 
   // ---- stats ----
   var s = D.stats || {};
@@ -40,22 +51,44 @@
   nav.appendChild(tab("الكل", null));
   D.pillars.forEach(function (p) { nav.appendChild(tab(p, p)); });
 
-  // ---- search ----
+  // ---- mode toggle ----
   var searchEl = $("#search");
+  var modes = $("#modes");
+  modes.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-mode]");
+    if (!b) return;
+    state.mode = b.dataset.mode;
+    [].forEach.call(modes.children, function (x) {
+      x.className = x.dataset.mode === state.mode ? "active" : "";
+    });
+    nav.style.display = state.mode === "index" ? "" : "none";
+    searchEl.placeholder = state.mode === "index"
+      ? "ابحث عن كتاب أو مؤلف أو علم…"
+      : "اكتب كلمة للبحث داخل نصوص الكتب…";
+    route();
+  });
+
+  // ---- search input ----
   var t;
   searchEl.addEventListener("input", function () {
     clearTimeout(t);
-    t = setTimeout(function () { state.q = norm(searchEl.value.trim()); render(); }, 120);
+    var delay = state.mode === "index" ? 120 : 350;
+    t = setTimeout(route, delay);
   });
-
-  // ---- matching ----
-  function matches(b) {
-    if (state.pillar && b.pillar !== state.pillar) return false;
-    if (!state.q) return true;
-    var hay = norm([b.title, b.author, b.science, b.sub, b.why].join(" "));
-    return state.q.split(/\s+/).every(function (w) { return hay.indexOf(w) >= 0; });
+  function route() {
+    state.q = searchEl.value.trim();
+    if (state.mode === "index") renderIndex();
+    else renderText();
   }
 
+  // ===== INDEX MODE =====
+  function matchesIndex(b) {
+    if (state.pillar && b.pillar !== state.pillar) return false;
+    if (!state.q) return true;
+    var q = norm(state.q);
+    var hay = norm([b.title, b.author, b.science, b.sub, b.why].join(" "));
+    return q.split(/\s+/).every(function (w) { return hay.indexOf(w) >= 0; });
+  }
   function badges(b) {
     var out = "";
     var free = b.links.some(function (l) { return l.type === "حر"; });
@@ -67,62 +100,114 @@
     if (b.level) out += '<span class="b lvl">' + esc(b.level) + "</span>";
     return out;
   }
-
-  // ---- render list ----
   var content = $("#content");
-  function render() {
-    var visible = D.books.filter(matches);
-    if (!visible.length) {
-      content.innerHTML = '<div class="empty">لا نتائج لبحثك.</div>';
-      return;
-    }
+  function renderIndex() {
+    var visible = D.books.filter(matchesIndex);
+    if (!visible.length) { content.innerHTML = '<div class="empty">لا نتائج لبحثك.</div>'; return; }
     var bySci = {};
     visible.forEach(function (b) { (bySci[b.science] = bySci[b.science] || []).push(b); });
     var html = "";
     D.sciences.forEach(function (sci) {
       var list = bySci[sci.name];
       if (!list) return;
-      html += '<section class="science">';
-      html += '<div class="pill-tag">' + esc(sci.pillar) + "</div>";
+      html += '<section class="science"><div class="pill-tag">' + esc(sci.pillar) + "</div>";
       html += "<h2>" + esc(sci.name) + ' <span class="n">' + list.length + " كتاب</span></h2>";
       html += '<div class="cards">';
       list.forEach(function (b) {
         var i = D.books.indexOf(b);
-        html +=
-          '<article class="card" data-i="' + i + '">' +
-          "<h3>" + esc(b.title) + "</h3>" +
-          '<div class="auth">' + esc(b.author) + "</div>" +
-          '<div class="badges">' + badges(b) + "</div>" +
-          "</article>";
+        html += '<article class="card" data-i="' + i + '"><h3>' + esc(b.title) + "</h3>" +
+          '<div class="auth">' + esc(b.author) + '</div><div class="badges">' + badges(b) + "</div></article>";
       });
       html += "</div></section>";
     });
     content.innerHTML = html;
   }
-
   content.addEventListener("click", function (e) {
-    var c = e.target.closest(".card");
-    if (c) openDetail(D.books[+c.dataset.i]);
+    var c = e.target.closest(".card[data-i]");
+    if (c) { openDetail(D.books[+c.dataset.i]); return; }
+    var r = e.target.closest(".tres[data-sh]");
+    if (r && byShamela[r.dataset.sh]) openDetail(byShamela[r.dataset.sh]);
   });
+
+  // ===== FULL-TEXT MODE (sql.js-httpvfs) =====
+  var workerPromise = null;
+  function getWorker() {
+    if (workerPromise) return workerPromise;
+    if (!window.CORPUS_DB || !window.createDbWorker) {
+      return Promise.reject(new Error("محرك البحث غير متاح."));
+    }
+    var cfg = window.CORPUS_DB;
+    var abs = function (p) { return new URL(p, location.href).href; };
+    workerPromise = window.createDbWorker(
+      [{ from: "inline", config: {
+        serverMode: "chunked",
+        urlPrefix: abs(cfg.urlPrefix),
+        suffixLength: cfg.suffixLength,
+        serverChunkSize: cfg.serverChunkSize,
+        requestChunkSize: cfg.requestChunkSize,
+        databaseLengthBytes: cfg.databaseLengthBytes
+      } }],
+      abs("assets/sqljs/sqlite.worker.js"),
+      abs("assets/sqljs/sql-wasm.wasm")
+    );
+    return workerPromise;
+  }
+  function matchExpr(q) {
+    var toks = norm(q).split(/\s+/).filter(Boolean).map(function (w) {
+      return '"' + w.replace(/"/g, "") + '"';
+    });
+    return toks.join(" ");
+  }
+  var textSeq = 0;
+  function renderText() {
+    if (!state.q || norm(state.q).replace(/\s/g, "").length < 2) {
+      content.innerHTML = '<div class="empty">اكتب كلمةً (حرفين فأكثر) للبحث داخل نصوص الكتب الحرة.<br>' +
+        '<span class="muted2">يُنزَّل الفهرس عند الطلب على دفعاتٍ صغيرة؛ النتائج تحيل إلى مصدرها على الشاملة.</span></div>';
+      return;
+    }
+    var seq = ++textSeq;
+    content.innerHTML = '<div class="empty">…جارٍ البحث داخل المتون</div>';
+    var expr = matchExpr(state.q);
+    getWorker().then(function (w) {
+      return w.db.query(
+        "SELECT book_id, science, title, " +
+        "snippet(docs, 4, char(1), char(2), '...', 12) AS snip, bm25(docs) AS rank " +
+        "FROM docs WHERE docs MATCH ? ORDER BY rank LIMIT 60", [expr]
+      );
+    }).then(function (rows) {
+      if (seq !== textSeq) return;
+      if (!rows.length) { content.innerHTML = '<div class="empty">لا ورودَ لهذه الكلمة في النصوص المفهرسة.</div>'; return; }
+      var html = '<div class="tcount">' + rows.length + ' نتيجة' + (rows.length === 60 ? "+" : "") + " داخل المتون</div>";
+      rows.forEach(function (r) {
+        var b = byShamela[r.book_id];
+        var title = b ? b.title : r.title;
+        var snip = esc(r.snip || "")
+          .split(String.fromCharCode(1)).join("<mark>")
+          .split(String.fromCharCode(2)).join("</mark>");
+        html += '<article class="tres" data-sh="' + esc(r.book_id) + '">' +
+          '<div class="tsci">' + esc(r.science || "") + "</div>" +
+          "<h3>" + esc(title) + "</h3>" +
+          '<p class="snip">' + snip + "</p>" +
+          '<span class="topen">افتح البطاقة والمصدر «</span></article>';
+      });
+      content.innerHTML = html;
+    }).catch(function (err) {
+      if (seq !== textSeq) return;
+      content.innerHTML = '<div class="empty">تعذّر البحث: ' + esc(err.message || err) + "</div>";
+    });
+  }
 
   // ---- detail ----
   var overlay = $("#overlay"), detail = $("#detail");
-  function ul(arr) {
-    return "<ul>" + arr.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>";
-  }
+  function ul(arr) { return "<ul>" + arr.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>"; }
   function openDetail(b) {
     var h = "<h2>" + esc(b.title) + "</h2>";
     h += '<div class="d-auth">' + esc(b.author) + (b.sub ? " · " + esc(b.sub) : "") + "</div>";
     h += '<div class="badges">' + badges(b) + "</div>";
-
     if (b.why) h += "<section><h4>لماذا هو أمٌّ في بابه</h4><p>" + esc(b.why) + "</p></section>";
-
-    if (b.translated && (b.translator || b.translationBody)) {
-      h += "<section><h4>الترجمة</h4><p>" +
-        (b.translator ? "ترجمة: " + esc(b.translator) : "") +
+    if (b.translated && (b.translator || b.translationBody))
+      h += "<section><h4>الترجمة</h4><p>" + (b.translator ? "ترجمة: " + esc(b.translator) : "") +
         (b.translationBody ? " — " + esc(b.translationBody) : "") + "</p></section>";
-    }
-
     if (b.editions && b.editions.length) {
       h += "<section><h4>أفضل الطبعات</h4>";
       b.editions.forEach(function (e) {
@@ -133,25 +218,21 @@
       });
       h += "</section>";
     }
-
     if (b.replaces.length) h += "<section><h4>يُغني عن</h4>" + ul(b.replaces) + "</section>";
     if (b.before.length) h += "<section><h4>يُقرأ قبله</h4>" + ul(b.before) + "</section>";
     if (b.commentaries.length) h += "<section><h4>الشروح والمختصرات والذيول</h4>" + ul(b.commentaries) + "</section>";
-
     if (b.links && b.links.length) {
       h += '<section><h4>القراءة والتحميل</h4><div class="links">';
       b.links.forEach(function (l) {
         var cls = l.type === "حر" ? "free" : l.type === "شراء" ? "buy" : "";
         var icon = l.type === "حر" ? "📥" : l.type === "شراء" ? "🛒" : "🔗";
-        h += '<a class="lnk ' + cls + '" href="' + esc(l.url) + '" target="_blank" rel="noopener">' +
-          "<span>" + icon + " " + (l.type === "حر" ? "تحميل/قراءة حر" : l.type === "شراء" ? "شراء (نسخة مشروعة)" : "رابط") +
+        h += '<a class="lnk ' + cls + '" href="' + esc(l.url) + '" target="_blank" rel="noopener"><span>' +
+          icon + " " + (l.type === "حر" ? "تحميل/قراءة حر" : l.type === "شراء" ? "شراء (نسخة مشروعة)" : "رابط") +
           '</span><span class="src">' + esc(l.src) + "</span></a>";
       });
       h += "</div></section>";
     }
-
     if (b.critique) h += '<section><h4>ملاحظات نقدية</h4><div class="crit">' + esc(b.critique) + "</div></section>";
-
     detail.innerHTML = h;
     overlay.hidden = false;
     overlay.querySelector(".sheet").scrollTop = 0;
@@ -162,5 +243,5 @@
   overlay.addEventListener("click", function (e) { if (e.target === overlay) closeDetail(); });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !overlay.hidden) closeDetail(); });
 
-  render();
+  renderIndex();
 })();
