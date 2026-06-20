@@ -17,9 +17,10 @@
       .replace(/ة/g, "ه");
   }
 
-  // shamela-id -> book (لربط نتائج النص بالبطاقة والمصدر)
+  // مفتاح النتيجة (رقم الشاملة أو الـslug) -> الكتاب، لربط نتائج النص بالبطاقة
   var byShamela = {};
   D.books.forEach(function (b) {
+    if (b.id) byShamela[b.id] = b;
     (b.links || []).forEach(function (l) {
       var m = /shamela\.ws\/book\/(\d+)/.exec(l.url || "");
       if (m) byShamela[m[1]] = b;

@@ -29,22 +29,25 @@ def normalize(text):
     return text
 
 
-def meta_by_id():
-    """يربط رقم الشاملة ببيانات الكتاب من data/."""
+def meta_maps():
+    """يربط بيانات الكتاب بمفتاحين: رقم الشاملة (للمنزَّل) والمعرّف المختصر (لملفات PDF)."""
     out = {}
     for ilm_dir, f in iter_book_files():
         data = load_book(f)
+        info = {
+            "science": data.get("العلم", ilm_dir.name),
+            "title": data.get("العنوان", f.stem),
+            "author": (data.get("المؤلف") or {}).get("الاسم", ""),
+            "slug": f.stem,
+        }
+        out[f.stem] = info            # المفتاح بالمعرّف المختصر (لملفات PDF المُدخَلة)
+        if data.get("id"):
+            out[data["id"]] = info
         for link in data.get("روابط_التحميل") or []:
             if isinstance(link, dict) and link.get("النوع") == "حر":
                 m = re.search(r"shamela\.ws/book/(\d+)", str(link.get("الرابط", "")))
                 if m:
-                    author = (data.get("المؤلف") or {}).get("الاسم", "")
-                    out[m.group(1)] = {
-                        "science": data.get("العلم", ilm_dir.name),
-                        "title": data.get("العنوان", f.stem),
-                        "author": author,
-                        "slug": f.stem,
-                    }
+                    out[m.group(1)] = info   # المفتاح برقم الشاملة (للمنزَّل)
     return out
 
 
@@ -57,7 +60,7 @@ def main():
     if DB_PATH.exists():
         DB_PATH.unlink()
 
-    meta = meta_by_id()
+    meta = meta_maps()
     con = sqlite3.connect(DB_PATH)
     con.execute(
         "CREATE VIRTUAL TABLE docs USING fts5("
