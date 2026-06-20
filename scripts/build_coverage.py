@@ -44,7 +44,7 @@ def main():
         free = [l for l in links if isinstance(l, dict) and l.get("النوع") == "حر"]
         buy = [l for l in links if isinstance(l, dict) and l.get("النوع") == "شراء"]
         sid = next((shamela_id(l.get("الرابط")) for l in free if shamela_id(l.get("الرابط"))), None)
-        downloaded = bool(sid and sid in have)
+        downloaded = bool((sid and sid in have) or f.stem in have or (d.get("id") and d["id"] in have))
         avail = str((d.get("التوافر_الرقمي") or {}).get("المكتبة_الشاملة", "")).strip()
         if downloaded:
             status, rank = "✅ محمَّل", 0
