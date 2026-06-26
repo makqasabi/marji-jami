@@ -1,0 +1,44 @@
+.hud{max-width:var(--maxw);margin:10px auto 0;display:flex;gap:18px;font-size:.9rem;color:#fdf7e8}
+.hud b{color:#ffe9b0}
+.quizwrap{max-width:680px;margin:0 auto;padding:18px 14px 50px}
+
+.card-pane{background:var(--card);border:1px solid var(--line);border-radius:16px;
+  box-shadow:var(--shadow);padding:22px 20px;margin-top:10px}
+
+.start h2{color:var(--teal-d);font-size:1.25rem;margin-bottom:4px}
+.start p.sub{color:var(--muted);font-size:.9rem;margin-bottom:16px}
+.field{margin:14px 0}
+.field label{display:block;font-weight:600;color:var(--teal-d);margin-bottom:7px;font-size:.92rem}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:#fff;color:var(--ink);padding:8px 14px;border-radius:999px;
+  font-family:inherit;font-size:.85rem;cursor:pointer}
+.chip.on{background:var(--teal);color:#fff;border-color:var(--teal)}
+select{width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;font-family:inherit;
+  font-size:.95rem;background:#fff;color:var(--ink)}
+.btn{display:block;width:100%;margin-top:18px;padding:14px;border:0;border-radius:12px;background:var(--teal);
+  color:#fff;font-family:inherit;font-size:1.05rem;font-weight:600;cursor:pointer}
+.btn:active{transform:scale(.99)}
+.btn.gold{background:var(--gold)}
+.btn.ghost{background:#fff;color:var(--teal-d);border:1px solid var(--line)}
+
+.qtext{font-size:1.2rem;line-height:1.7;color:var(--ink);margin-bottom:6px}
+.qmeta{font-size:.72rem;color:var(--gold);margin-bottom:16px}
+.opts{display:flex;flex-direction:column;gap:10px}
+.opt{text-align:right;border:1px solid var(--line);background:#fff;color:var(--ink);padding:13px 16px;
+  border-radius:12px;font-family:inherit;font-size:1rem;cursor:pointer;transition:.1s}
+.opt:hover{border-color:var(--teal)}
+.opt.correct{background:#eef9f1;border-color:#36a86b;color:#15683b;font-weight:600}
+.opt.wrong{background:#fdeeee;border-color:#d66;color:#a33}
+.opt.dim{opacity:.6}
+.opt:disabled{cursor:default}
+.explain{margin-top:14px;background:#fbf7ec;border:1px solid #ece2c8;border-radius:10px;padding:11px 14px;
+  font-size:.92rem;color:#6a5a30}
+.nextrow{display:flex;gap:10px;margin-top:16px}
+.nextrow .btn{margin-top:0}
+
+.results{text-align:center}
+.results .big{font-size:3rem;font-weight:700;color:var(--teal)}
+.results .pct{font-size:1.1rem;color:var(--muted);margin-bottom:14px}
+.tally{display:flex;justify-content:center;gap:22px;margin:14px 0;font-size:.95rem}
+.tally .ok{color:#15683b}.tally .no{color:#a33}
+.medal{font-size:2.4rem}
